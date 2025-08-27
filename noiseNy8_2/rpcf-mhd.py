@@ -293,7 +293,7 @@ if load_cp == 'default':
         logger.info("populating magnetic potential with noisy Bz={} initial condition".format(B0_z))
         logger.info('populating velocity with noise initial condition')
         A.fill_random(seed=2*seed)
-        A.low_pass_filter(scales=1)
+        A.low_pass_filter(scales=0.25)
         A['g'] *= ic_scale_A
 
         # curlA = d3.Curl(A).evaluate()

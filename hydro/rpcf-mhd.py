@@ -293,7 +293,7 @@ if load_cp == 'default':
         logger.info("populating magnetic potential with noisy Bz={} initial condition".format(B0_z))
         logger.info('populating velocity with noise initial condition')
         A.fill_random(seed=2*seed)
-        A.low_pass_filter(scales=1)
+        A.low_pass_filter(scales=0.0625)
         A['g'] *= ic_scale_A
 
         # curlA = d3.Curl(A).evaluate()
@@ -348,7 +348,7 @@ else:
                 logger.info('failed to load vector potential (magnetic field) data. Continuing with just the flow state assuming we loaded from hydro...')
                 # A['g'][0] = -2*B0_z*np.cos(np.pi*x / Lx) / (np.pi / Lx)
                 A.fill_random()
-                A.low_pass_filter(scales=0.25)
+                A.low_pass_filter(scales=0.0625)
                 A['g'] *= ic_scale_A * (x - Lx/2) * (x + Lx/2)
                 logger.info('appending noisy magnetic field to existing hydro initial condition')
         imported_time = file['scales']['sim_time'][()][0]

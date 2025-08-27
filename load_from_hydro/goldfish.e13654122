@@ -1,0 +1,3 @@
+/home/x-loconnor/lksdjfsl.cfg: line 1: [parameters]: command not found
+slurmstepd: error: *** STEP 13654122.0 ON a250 CANCELLED AT 2025-08-21T10:04:53 DUE TO TIME LIMIT ***
+slurmstepd: error: *** JOB 13654122 ON a250 CANCELLED AT 2025-08-21T10:04:53 DUE TO TIME LIMIT ***

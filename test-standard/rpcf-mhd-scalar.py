@@ -176,24 +176,36 @@ y_unity['g'] = 1.0
 z_field = dist.Field(name='z_field', bases=(zbasis,))
 z_field['g'] = z
 p = dist.Field(name='p', bases=twod_bases)
-u = dist.VectorField(coords, name='u', bases=twod_bases)
-if doLoadVelocity:
-    logger.info('locking velocity to grid b/c it is prescribed with doLoadVelocity=True')
-    u = d3.Grid(u).evaluate()
+# u = dist.VectorField(coords, name='u', bases=twod_bases)
+uy = dist.Field(name='uy', bases=twod_bases)
+uz = dist.Field(name='uz', bases=twod_bases)
+ux = dist.Field(name='ux', bases=twod_bases)
 uinit = dist.VectorField(coords, name='uinit', bases=twod_bases)
 taup = dist.Field(name='taup')
-tau1u = dist.VectorField(coords, name='tau1u', bases=twod_tau_bases)
-tau2u = dist.VectorField(coords, name='tau2u', bases=twod_tau_bases)
-grad_u = d3.grad(u) + ex*lift(tau1u,-1)
 
-A = dist.VectorField(coords, name='A', bases=bases)
+tau1uy = dist.Field(name='tau1uy', bases=twod_tau_bases)
+tau2uy = dist.Field(name='tau2uy', bases=twod_tau_bases)
+tau1uz = dist.Field(name='tau1uz', bases=twod_tau_bases)
+tau2uz = dist.Field(name='tau2uz', bases=twod_tau_bases)
+tau1ux = dist.Field(name='tau1ux', bases=twod_tau_bases)
+tau2ux = dist.Field(name='tau2ux', bases=twod_tau_bases)
+
+Ay = dist.Field(name='Ay', bases=bases)
+Az = dist.Field(name='Az', bases=bases)
+Ax = dist.Field(name='Ax', bases=bases)
+phi = dist.Field(name='phi', bases=bases)
+tau1Ay = dist.Field(name='tau1Ay', bases=tau_bases)
+tau2Ay = dist.Field(name='tau2Ay', bases=tau_bases)
+tau1Az = dist.Field(name='tau1Az', bases=tau_bases)
+tau2Az = dist.Field(name='tau2Az', bases=tau_bases)
+tau1Ax = dist.Field(name='tau1Ax', bases=tau_bases)
+tau2Ax = dist.Field(name='tau2Ax', bases=tau_bases)
+
 Ainit = dist.VectorField(coords, name='Ainit', bases=bases)
 binit = dist.VectorField(coords, name='binit', bases=bases)
-phi = dist.Field(name='phi', bases=bases)
-tau1A = dist.VectorField(coords, name='tau1A', bases=tau_bases)
-tau2A = dist.VectorField(coords, name='tau2A', bases=tau_bases)
-grad_A = d3.grad(A) + ex*lift(tau1A,-1)
-b = d3.Curl(A)
+# grad_A = d3.grad(A) + ex*lift(tau1A,-1)
+A = Ay*ey + Az*ez + Ax*ex
+b = d3.Curl(Ay*ey + Az*ez + Ax*ex)
 
 if 'floquet' in suffix:
     B0 = b * np.exp(growth_rate * t)
@@ -201,54 +213,69 @@ if 'floquet' in suffix:
 if doLoadVelocity:
     vars = []
 else:
-    vars = [p, u, taup, tau1u, tau2u]
+    vars = [p, uy, uz, ux, taup, tau1uy, tau1uz, tau1ux, tau2uy, tau2uz, tau2ux]
 if not isHydro:
-    vars += [phi, A, tau1A, tau2A]
+    vars += [Ay, Az, Ax, phi, tau1Ay, tau2Ay, tau1Az, tau2Az, tau1Ax, tau2Ax]
 try:
     problem = d3.IVP(vars, time=t, namespace=locals())
 
     # divergence-free velocity
     if not doLoadVelocity:
-        DIVU_LHS = d3.trace(grad_u) + taup
+        DIVU_LHS = dy(uy) + dz(uz) + dx(ux) + taup + lift(tau1ux,-1)
         DIVU_RHS = 0
         problem.add_equation((DIVU_LHS, DIVU_RHS))
-        # problem.add_equation("dt(amp) - 0.01952041*amp = 0")
 
+        NS_LHSy = dt(uy)         + 1 / Ro * ux - 1 / Re * (dz(dz(uy)) + dx(dx(uy) + lift(tau1uy,-1))) + lift(tau2uy,-1)
+        NS_LHSz = dt(uz) + dz(p)               - 1 / Re * (dz(dz(uz)) + dx(dx(uz) + lift(tau1uz,-1))) + lift(tau2uz,-1)
+        NS_LHSx = dt(ux) + dx(p) - 1 / Ro * uy - 1 / Re * (dz(dz(ux)) + dx(dx(ux) + lift(tau1ux,-1))) + lift(tau2ux,-1)
 
-        # incompressible momentum
-        NS_LHS = dt(u) + d3.grad(p) + 1 / Ro * d3.cross(z_hat, u) - 1 / Re * d3.div(grad_u) + lift(tau2u,-1)
-        NS_RHS = d3.cross(u, d3.curl(u))
+        NS_RHSy = -ux*dx(uy) - uz*dz(uy)
+        NS_RHSz = -ux*dx(uz) - uz*dz(uz)
+        NS_RHSx = -ux*dx(ux) - uz*dz(ux)
 
+        problem.add_equation((NS_LHSy, NS_RHSy))
+        problem.add_equation((NS_LHSz, NS_RHSz))
+        problem.add_equation((NS_LHSx, NS_RHSx))
 
         if not isHydro and not isKinematic:
             if is2d:
                 NS_RHS -= d3.Integrate((d3.cross(b, d3.curl(b))), 'y') / Ly
             else:
                 NS_RHS -= d3.cross(b, d3.curl(b))
-        problem.add_equation((NS_LHS,   NS_RHS))
+
         # boundary conditions
         problem.add_equation("integ(p)              = 0") 
-        problem.add_equation("dot(u, ex)(x='left')  = 0")
-        problem.add_equation("dot(u, ex)(x='right') = 0")
-        problem.add_equation("dot(u, ey)(x='left')  = dot(U0, ey)(x='left')")
-        problem.add_equation("dot(u, ey)(x='right') = dot(U0, ey)(x='right')")
-        problem.add_equation("dot(u, ez)(x='left')  = dot(U0, ez)(x='left')")
-        problem.add_equation("dot(u, ez)(x='right') = dot(U0, ez)(x='right')")
+        problem.add_equation("ux(x='left')  = 0")
+        problem.add_equation("ux(x='right') = 0")
+        problem.add_equation("uy(x='left')  = dot(U0, ey)(x='left')")
+        problem.add_equation("uy(x='right') = dot(U0, ey)(x='right')")
+        problem.add_equation("uz(x='left')  = dot(U0, ez)(x='left')")
+        problem.add_equation("uz(x='right') = dot(U0, ez)(x='right')")
 
     # induction
     if not isHydro:
-        IND_LHS = dt(A) + d3.grad(phi) - 1 / Rm * d3.div(grad_A) + lift(tau2A, -1)
-        IND_RHS = d3.cross(u, b)
-        problem.add_equation((IND_LHS, IND_RHS))
-        DIVA_LHS = d3.trace(grad_A)
+        IND_LHSy = dt(Ay) + dy(phi) - 1 / Rm * (dy(dy(Ay)) + dz(dz(Ay)) + dx(dx(Ay) + lift(tau1Ay, -1))) + lift(tau2Ay, -1)
+        IND_LHSz = dt(Az) + dz(phi) - 1 / Rm * (dy(dy(Az)) + dz(dz(Az)) + dx(dx(Az) + lift(tau1Az, -1))) + lift(tau2Az, -1)
+        IND_LHSx = dt(Ax) + dx(phi) - 1 / Rm * (dy(dy(Ax)) + dz(dz(Ax)) + dx(dx(Ax) + lift(tau1Ax, -1))) + lift(tau2Ax, -1)
+        
+        IND_RHSy = -uz * dz(Ay) + ux * dy(Ax) + uz * dy(Az) - ux * dx(Ay)
+        IND_RHSz =  ux * dz(Ax) + uy * dz(Ay) - uy * dy(Az) - ux * dx(Az)
+        IND_RHSx = -uz * dz(Ax) - uy * dy(Ax) + uy * dx(Ay) + uz * dx(Az)
+
+        problem.add_equation((IND_LHSy, IND_RHSy))
+        problem.add_equation((IND_LHSz, IND_RHSz))
+        problem.add_equation((IND_LHSx, IND_RHSx))
+
+        DIVA_LHS = dy(Ay) + dz(Az) + dx(Ax) + lift(tau1Ax, -1)
         DIVA_RHS = 0
         problem.add_equation((DIVA_LHS, DIVA_RHS))
+
         problem.add_equation("phi(x='left')  = 0")
         problem.add_equation("phi(x='right') = 0")
-        problem.add_equation("dot(A, ey)(x='left')  = 0")
-        problem.add_equation("dot(A, ez)(x='left')  = 0")
-        problem.add_equation("dot(A, ey)(x='right') = 0")
-        problem.add_equation("dot(A, ez)(x='right') = 0")
+        problem.add_equation("Ay(x='left')  = 0")
+        problem.add_equation("Ay(x='right') = 0")
+        problem.add_equation("Az(x='left')  = 0")
+        problem.add_equation("Az(x='right') = 0")
 
 
 
@@ -256,9 +283,6 @@ try:
 except Exception as e:
     logger.info(e)
     sys.exit()
-
-# print(solver.print_subproblem_ranks())
-# sys.exit()
     
 solver.stop_sim_time = stop_sim_time
 
@@ -268,10 +292,8 @@ fh_mode = 'overwrite'
 imported_time = 0.0
 
 N_checkpoints = 0
-A0 = A.copy()
-A1 = A.copy()
-u0 = u.copy()
-u1 = u.copy()
+# A0 = A.copy()
+# A1 = A.copy()
 
 def inner_p(field1, field2):
     return integ(field1 @ field2)
@@ -283,18 +305,18 @@ def analyze_floquet_func():
     return
 
 if load_cp == 'default':
-    u.fill_random(seed=seed)
-    u.low_pass_filter(scales=0.0625)
-    u.change_scales(1)
-    u['g'] *= 1e-5 * x * (Lx - x)
-    u.change_scales(1)
-    u['g'][0] += S * x
+    uy.fill_random(seed=seed)
+    uy.low_pass_filter(scales=0.0625)
+    uy.change_scales(1)
+    uy['g'] *= 1e-5 * x * (Lx - x)
+    uy.change_scales(1)
+    uy['g'] += S * x
     if not isHydro:
         logger.info("populating magnetic potential with noisy Bz={} initial condition".format(B0_z))
         logger.info('populating velocity with noise initial condition')
-        A.fill_random(seed=2*seed)
-        A.low_pass_filter(scales=1)
-        A['g'] *= ic_scale_A
+        Ay.fill_random(seed=2*seed)
+        Ay.low_pass_filter(scales=0.0625)
+        Ay['g'] *= ic_scale_A
 
         # curlA = d3.Curl(A).evaluate()
         # curlA.change_scales(1)
@@ -302,8 +324,8 @@ if load_cp == 'default':
         # A.change_scales(1)
         # A['g'] = vp_bvp_func(curlA.copy())
 
-        A['g'][0] += -2*B0_z*np.cos(np.pi*x / Lx) / (np.pi / Lx)
-        A['g'] *= (x - Lx/2) * (x + Lx/2)
+        Ay['g'] += -2*B0_z*np.cos(np.pi*x / Lx) / (np.pi / Lx)
+        Ay['g'] *= (x - Lx/2) * (x + Lx/2)
 elif load_cp == 'noise':
     u.fill_random(seed=seed)
     u.low_pass_filter(scales=0.0625)
@@ -348,7 +370,7 @@ else:
                 logger.info('failed to load vector potential (magnetic field) data. Continuing with just the flow state assuming we loaded from hydro...')
                 # A['g'][0] = -2*B0_z*np.cos(np.pi*x / Lx) / (np.pi / Lx)
                 A.fill_random()
-                A.low_pass_filter(scales=0.25)
+                A.low_pass_filter(scales=0.0625)
                 A['g'] *= ic_scale_A * (x - Lx/2) * (x + Lx/2)
                 logger.info('appending noisy magnetic field to existing hydro initial condition')
         imported_time = file['scales']['sim_time'][()][0]
@@ -362,14 +384,16 @@ else:
         A['g'] = A_normed['g'].copy()
 
 # u.change_scales(1)
-A.change_scales(1)
+# A.change_scales(1)
 if doLoadVelocity:
     uinit.change_scales(dealias)
-uinit['g'] = u['g'].copy()
+# uinit['g'] = u['g'].copy()
+Ainit.change_scales(dealias)
 Ainit['g'] = A['g'].copy()
 binit.change_scales(dealias)
 binit['g'] = b.evaluate()['g'].copy()
 
+u = ey*uy + ez*uz + ex*ux
 useCFL = True
 if not doLoadVelocity and not isKinematic:
     CFL = d3.CFL(solver, initial_dt=init_timestep, cadence=10, safety=cfl_safety, threshold=0.05,
@@ -431,7 +455,7 @@ if scalars_sim_dt != 0:
     scalars.add_task(d3.Integrate(0.5 * (u_record @ ey)**2) / vol, name = 'ke_y')
     scalars.add_task(d3.Integrate(0.5 * (u_record @ ez)**2) / vol, name = 'ke_z')
     scalars.add_task(d3.Integrate(0.5 * (u_record @ ex)**2) / vol, name = 'ke_x')
-    scalars.add_task(d3.Integrate((u_record - uinit) @ (u_record - uinit)) / vol, name = 'udiff')
+    # scalars.add_task(d3.Integrate((u_record - uinit) @ (u_record - uinit)) / vol, name = 'udiff')
     scalars.add_task(d3.Integrate(u_record @ d3.curl(u_record) / vol), name = 'uhelicity')
     if not isHydro:
         num_keff = d3.Integrate(d3.curl(b_record) @ d3.curl(b_record))

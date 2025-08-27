@@ -1,1 +1,16 @@
 __pycache__
+*.h5
+**/*.h5
+*.png
+*.mp4
+*logger.txt
+*.pdf
+*.o*
+*.o
+*Zone.Identifier
+*.pt
+*core.*
+# *.net
+*.tar.gz
+*.npy
+*.txt

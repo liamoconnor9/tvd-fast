@@ -1,0 +1,28 @@
+/home/x-loconnor/lksdjfsl.cfg: line 1: [parameters]: command not found
+Traceback (most recent call last):
+  File "/anvil/projects/x-mth240048/tvd-fast/noiseNy8/rpcf-mhd.py", line 617, in <module>
+    solver.step(timestep)
+  File "/home/x-loconnor/.conda/envs/2024.02-py311/dedalus3/lib/python3.10/site-packages/dedalus/core/solvers.py", line 654, in step
+    self.timestepper.step(dt, wall_time)
+  File "/home/x-loconnor/.conda/envs/2024.02-py311/dedalus3/lib/python3.10/site-packages/dedalus/core/timesteppers.py", line 596, in step
+    evaluator.evaluate_scheduled(iteration=iteration, wall_time=wall_time, sim_time=solver.sim_time, timestep=dt)
+  File "/home/x-loconnor/.conda/envs/2024.02-py311/dedalus3/lib/python3.10/site-packages/dedalus/core/evaluator.py", line 92, in evaluate_scheduled
+    self.evaluate_handlers(handlers, **kw)
+  File "/home/x-loconnor/.conda/envs/2024.02-py311/dedalus3/lib/python3.10/site-packages/dedalus/core/evaluator.py", line 148, in evaluate_handlers
+    handler.process(**kw)
+  File "/home/x-loconnor/.conda/envs/2024.02-py311/dedalus3/lib/python3.10/site-packages/dedalus/core/evaluator.py", line 588, in process
+    file = self.get_file()
+  File "/home/x-loconnor/.conda/envs/2024.02-py311/dedalus3/lib/python3.10/site-packages/dedalus/core/evaluator.py", line 504, in get_file
+    self.create_current_file()
+  File "/home/x-loconnor/.conda/envs/2024.02-py311/dedalus3/lib/python3.10/site-packages/dedalus/core/evaluator.py", line 512, in create_current_file
+    with h5py.File(str(self.current_file), 'w-') as file:
+  File "/home/x-loconnor/.conda/envs/2024.02-py311/dedalus3/lib/python3.10/site-packages/h5py/_hl/files.py", line 562, in __init__
+    fid = make_fid(name, mode, userblock_size, fapl, fcpl, swmr=swmr)
+  File "/home/x-loconnor/.conda/envs/2024.02-py311/dedalus3/lib/python3.10/site-packages/h5py/_hl/files.py", line 239, in make_fid
+    fid = h5f.create(name, h5f.ACC_EXCL, fapl=fapl, fcpl=fcpl)
+  File "h5py/_objects.pyx", line 54, in h5py._objects.with_phil.wrapper
+  File "h5py/_objects.pyx", line 55, in h5py._objects.with_phil.wrapper
+  File "h5py/h5f.pyx", line 122, in h5py.h5f.create
+OSError: [Errno 28] Unable to synchronously create file (unable to open file: name = '/anvil/projects/x-mth240048/tvd-fast/noiseNy8/slicepoints/slicepoints_s28.h5', errno = 28, error message = 'No space left on device', flags = 15, o_flags = c2)
+slurmstepd: error: *** STEP 13662864.0 ON a397 CANCELLED AT 2025-08-24T00:06:49 DUE TO TIME LIMIT ***
+slurmstepd: error: *** JOB 13662864 ON a397 CANCELLED AT 2025-08-24T00:06:49 DUE TO TIME LIMIT ***
