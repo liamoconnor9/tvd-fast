@@ -18,15 +18,9 @@ echo $procs
 
 fps=120
 mpirun -np $procs python3 plot_clean.py $suffix
-mpirun -np $procs python3 plot_slicepoint.py $suffix
-
 
 source="$suffix/cleany/"
 videoname="$suffix/cleany.mp4"
-make_video
-
-source="$suffix/mid_zx/"
-videoname="$suffix/mid_zx.mp4"
 make_video
 
 source="$suffix/cleanx/"
@@ -36,6 +30,13 @@ make_video
 source="$suffix/cleanz/"
 videoname="$suffix/cleanz.mp4"
 make_video
+
+mpirun -np $procs python3 plot_slicepoint.py $suffix
+source="$suffix/mid_zx/"
+videoname="$suffix/mid_zx.mp4"
+make_video
+
+
 exit 1
 # exit 1
 

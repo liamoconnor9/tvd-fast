@@ -256,9 +256,6 @@ try:
 except Exception as e:
     logger.info(e)
     sys.exit()
-
-# print(solver.print_subproblem_ranks())
-# sys.exit()
     
 solver.stop_sim_time = stop_sim_time
 
@@ -282,7 +279,49 @@ def get_norm(field):
 def analyze_floquet_func():
     return
 
-if load_cp == 'default':
+try:
+    if isinstance(load_cp, tuple):
+        weights23 = load_cp
+    else:
+        weights23 = eval(load_cp)
+    weight2 = weights23[0]
+    weight3 = weights23[1]
+    blend_hydros = True
+except:
+    blend_hydros = False
+
+if blend_hydros:
+    logger.info('blending 2-cell and 3-cell states to generate initial condition')
+    u2 = u.copy()
+    u2.name = 'u2'
+    u3 = u.copy()
+    u3.name = 'u3'
+
+    u2_suffix = 'twocell_hydro_restart'
+    load_path = "{}/{}".format(path, u2_suffix).replace(suffix + "/", "")
+    if not load_path[-3:] == '.h5':
+        cps_all = glob('{}/checkpoint/*h5'.format(load_path))
+        indices = [int(cp_path.split('checkpoint_s')[-1][:-3]) for cp_path in cps_all]
+        cps_sorted = [x for _, x in sorted(zip(indices, cps_all))]
+        load_path = cps_sorted[-1]
+    with h5py.File(load_path, "r") as file:
+        u2.load_from_hdf5(file, 0, task='u')
+        u2.change_scales(1)
+
+    u3_suffix = 'threecell_hydro_restart'
+    load_path = "{}/{}".format(path, u3_suffix).replace(suffix + "/", "")
+    if not load_path[-3:] == '.h5':
+        cps_all = glob('{}/checkpoint/*h5'.format(load_path))
+        indices = [int(cp_path.split('checkpoint_s')[-1][:-3]) for cp_path in cps_all]
+        cps_sorted = [x for _, x in sorted(zip(indices, cps_all))]
+        load_path = cps_sorted[-1]
+    with h5py.File(load_path, "r") as file:
+        u3.load_from_hdf5(file, 0, task='u')
+        u3.change_scales(1)
+    u.change_scales(dealias)
+    u['g'] = (weight2 * u2 + weight3 * u3).evaluate()['g'].copy()
+
+elif load_cp == 'default':
     u.fill_random(seed=seed)
     u.low_pass_filter(scales=0.0625)
     u.change_scales(1)
@@ -293,7 +332,7 @@ if load_cp == 'default':
         logger.info("populating magnetic potential with noisy Bz={} initial condition".format(B0_z))
         logger.info('populating velocity with noise initial condition')
         A.fill_random(seed=2*seed)
-        A.low_pass_filter(scales=1)
+        A.low_pass_filter(scales=0.0625)
         A['g'] *= ic_scale_A
 
         # curlA = d3.Curl(A).evaluate()
@@ -325,6 +364,7 @@ elif load_cp == 'noise':
         # A.change_scales(1)
         # A['g'] = vp_bvp_func(curlA.copy())
 else:
+    
     load_path = "{}/{}".format(path, load_cp).replace(suffix + "/", "")
     if not load_path[-3:] == '.h5':
         cps_all = glob('{}/checkpoint/*h5'.format(load_path))
@@ -336,10 +376,14 @@ else:
 
     # solver.load_state(load_path)    
     with h5py.File(load_path, "r") as file:
+        
         u.load_from_hdf5(file, 0, task='u')
-        # u.load_from_global_grid_data(file['tasks']['u'][()][0, :, :, :int(Nz*8/9), :])
-
         u.change_scales(1)
+        # data_full = u.allgather_data(layout='g')
+        # print(data_full.shape)
+        # sys.exit()
+        # load_from_global_grid_data
+        # u.load_from_global_grid_data(file['tasks']['u'][()][0, :, :, :int(Nz*1/2), :])
         u['g'] *= ic_scale_u
         if not isHydro:
             try:
@@ -350,7 +394,7 @@ else:
                 logger.info('failed to load vector potential (magnetic field) data. Continuing with just the flow state assuming we loaded from hydro...')
                 # A['g'][0] = -2*B0_z*np.cos(np.pi*x / Lx) / (np.pi / Lx)
                 A.fill_random()
-                A.low_pass_filter(scales=1.0)
+                A.low_pass_filter(scales=0.0625)
                 A['g'] *= ic_scale_A * (x - Lx/2) * (x + Lx/2)
                 logger.info('appending noisy magnetic field to existing hydro initial condition')
         imported_time = file['scales']['sim_time'][()][0]
@@ -363,10 +407,8 @@ else:
         A.change_scales(1)
         A['g'] = A_normed['g'].copy()
 
-# u.change_scales(1)
+u.change_scales(1)
 A.change_scales(1)
-if doLoadVelocity:
-    uinit.change_scales(dealias)
 uinit['g'] = u['g'].copy()
 Ainit['g'] = A['g'].copy()
 binit.change_scales(dealias)
@@ -482,9 +524,9 @@ if scalars_sim_dt != 0:
         scalars.add_task(get_z_mode_amplitude(n, u@u), name = 'ke_mode{}'.format(n))
         if not isHydro:
             scalars.add_task(get_z_mode_amplitude(n, b_record@b_record), name = 'be_mode{}'.format(n))
-    if not sparse_output:
-        for ki in range(Nmodes_track):
-            add_mode_n(ki + 1)
+    # if not sparse_output:
+    for ki in range(Nmodes_track):
+        add_mode_n(ki + 1)
 
 mode2_sin = np.sin(2*z_field)
 mode2_cos = np.cos(2*z_field)

@@ -337,7 +337,7 @@ else:
     # solver.load_state(load_path)    
     with h5py.File(load_path, "r") as file:
         u.load_from_hdf5(file, 0, task='u')
-        # u.load_from_global_grid_data(file['tasks']['u'][()][0, :, :, :int(Nz*8/9), :])
+        u.load_from_global_grid_data(file['tasks']['u'][()][0, :, :, :int(Nz*8/9), :])
 
         u.change_scales(1)
         u['g'] *= ic_scale_u
@@ -350,7 +350,7 @@ else:
                 logger.info('failed to load vector potential (magnetic field) data. Continuing with just the flow state assuming we loaded from hydro...')
                 # A['g'][0] = -2*B0_z*np.cos(np.pi*x / Lx) / (np.pi / Lx)
                 A.fill_random()
-                A.low_pass_filter(scales=1.0)
+                A.low_pass_filter(scales=0.25)
                 A['g'] *= ic_scale_A * (x - Lx/2) * (x + Lx/2)
                 logger.info('appending noisy magnetic field to existing hydro initial condition')
         imported_time = file['scales']['sim_time'][()][0]
