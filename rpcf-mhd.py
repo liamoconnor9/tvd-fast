@@ -31,12 +31,18 @@ try:
     seed = config.getint('parameters','seed')
 except:
     seed = 1
+logger.info("seed = {}".format(seed))
 load_cp = eval(config.get('parameters','load_cp'))
 
 try:
     is2d = config.getboolean('parameters', 'is2d')
 except:
     is2d = False
+
+try:
+    track_ut = config.getboolean('parameters', 'track_ut')
+except:
+    track_ut = False
 isHydro = config.getboolean('parameters','isHydro')
 isKinematic = config.getboolean('parameters','isKinematic')
 try:
@@ -45,6 +51,10 @@ except:
     doLoadVelocity = False
 if doLoadVelocity and not isKinematic:
     raise
+try:
+    doDivClean = config.getboolean('parameters', 'doDivClean')
+except:
+    doDivClean = False
 
 doLoadTimestep = config.getboolean('parameters','doLoadTimestep')
 
@@ -60,7 +70,7 @@ Lx = eval(config.get('parameters','Lx'))
 
 ic_scale_u = config.getfloat('parameters','ic_scale_u')
 ic_scale_A = config.getfloat('parameters','ic_scale_A')
-Ro = config.getfloat('parameters','Ro')
+Ro = eval(config.get('parameters','Ro'))
 Re = config.getfloat('parameters','Re')
 Rm = config.getfloat('parameters','Rm')
 B0_coeff = config.getfloat('parameters', 'B0_coeff')
@@ -80,6 +90,9 @@ cp_scale = config.getfloat('parameters','cp_scale')
 sp_sim_dt = config.getfloat('parameters','sp_sim_dt')
 sp_scale = config.getfloat('parameters','sp_scale')
 
+Nmodes_track = int(np.ceil(Lz / np.pi * 1.2))
+logger.info('Tracking {} z-mode magnitudes (energies) in the velocity'.format(Nmodes_track))
+
 ary = Ly / Lx
 arz = Lz / Lx
 vol = Ly * Lz * Lx
@@ -95,7 +108,10 @@ logger.info('[OUTPUTTED] B0_z = {}'.format(B0_z))
 
 ncpu = MPI.COMM_WORLD.size
 log2 = np.log2(ncpu)
-mesh = [1, round(ncpu / 1)]
+if is2d:
+    mesh = [1, round(ncpu / 1)]
+else:
+    mesh = [int(2**np.ceil(log2/2)),int(2**np.floor(log2/2))]
 
 # log2 = np.log2(ncpu)
 # if log2 == int(log2):
@@ -177,9 +193,12 @@ z_field = dist.Field(name='z_field', bases=(zbasis,))
 z_field['g'] = z
 p = dist.Field(name='p', bases=twod_bases)
 u = dist.VectorField(coords, name='u', bases=twod_bases)
+u = dist.VectorField(coords, name='u', bases=twod_bases)
+if track_ut:
+    ut = dist.VectorField(coords, name='ut', bases=twod_bases)
 if doLoadVelocity:
     logger.info('locking velocity to grid b/c it is prescribed with doLoadVelocity=True')
-    u = d3.Grid(u).evaluate()
+    # u = d3.Grid(u).evaluate()
 uinit = dist.VectorField(coords, name='uinit', bases=twod_bases)
 taup = dist.Field(name='taup')
 tau1u = dist.VectorField(coords, name='tau1u', bases=twod_tau_bases)
@@ -204,6 +223,8 @@ else:
     vars = [p, u, taup, tau1u, tau2u]
 if not isHydro:
     vars += [phi, A, tau1A, tau2A]
+if track_ut:
+    vars += [ut]
 try:
     problem = d3.IVP(vars, time=t, namespace=locals())
 
@@ -216,7 +237,13 @@ try:
 
 
         # incompressible momentum
-        NS_LHS = dt(u) + d3.grad(p) + 1 / Ro * d3.cross(z_hat, u) - 1 / Re * d3.div(grad_u) + lift(tau2u,-1)
+        NS_LHS = d3.grad(p) - 1 / Re * d3.div(grad_u) + lift(tau2u,-1)
+        if not np.isinf(Ro):
+            NS_LHS += 1 / Ro * d3.cross(z_hat, u)
+            logger.info('appending coriolis term...')
+        else:
+            logger.info('infinite rossby. No coriolis term')
+
         NS_RHS = d3.cross(u, d3.curl(u))
 
 
@@ -225,7 +252,14 @@ try:
                 NS_RHS -= d3.Integrate((d3.cross(b, d3.curl(b))), 'y') / Ly
             else:
                 NS_RHS -= d3.cross(b, d3.curl(b))
+
+        if track_ut:
+            NS_LHS += ut
+            problem.add_equation((ut - dt(u),   0))
+        else:
+            NS_LHS += dt(u)
         problem.add_equation((NS_LHS,   NS_RHS))
+            
         # boundary conditions
         problem.add_equation("integ(p)              = 0") 
         problem.add_equation("dot(u, ex)(x='left')  = 0")
@@ -268,7 +302,7 @@ fh_mode = 'overwrite'
 imported_time = 0.0
 
 N_checkpoints = 0
-A0 = A.copy()
+# A0 = A.copy()
 A1 = A.copy()
 u0 = u.copy()
 u1 = u.copy()
@@ -284,16 +318,16 @@ def analyze_floquet_func():
 
 if load_cp == 'default':
     u.fill_random(seed=seed)
-    u.low_pass_filter(scales=0.0625)
+    u.low_pass_filter(scales=0.25)
     u.change_scales(1)
-    u['g'] *= 1e-5 * x * (Lx - x)
+    u['g'] *= ic_scale_u * x * (Lx - x)
     u.change_scales(1)
     u['g'][0] += S * x
     if not isHydro:
         logger.info("populating magnetic potential with noisy Bz={} initial condition".format(B0_z))
         logger.info('populating velocity with noise initial condition')
         A.fill_random(seed=2*seed)
-        A.low_pass_filter(scales=1)
+        A.low_pass_filter(scales=0.25)
         A['g'] *= ic_scale_A
 
         # curlA = d3.Curl(A).evaluate()
@@ -337,40 +371,67 @@ else:
     # solver.load_state(load_path)    
     with h5py.File(load_path, "r") as file:
         u.load_from_hdf5(file, 0, task='u')
-        # u.load_from_global_grid_data(file['tasks']['u'][()][0, :, :, :int(Nz*8/9), :])
+        if 'noise' in suffix:
+            A.fill_random(seed=seed*2)
+            u.change_scales(1)
+            A.change_scales(1)
+            u['g'] += 1e-5*A['g'].copy()
+            logger.info('adding noise to loaded initial velocity')
+
+        # u.load_from_global_grid_data(file['tasks']['u'][()][0, :, :, :int(Nz*4/5), :])
 
         u.change_scales(1)
         u['g'] *= ic_scale_u
         if not isHydro:
             try:
                 A.load_from_hdf5(file, 0, task='A')
-                A.change_scales(1)
                 A['g'] *= ic_scale_A
+                # logger.info('ic_scale_A = {}'.format(ic_scale_A))
+                # normA = get_norm(A).evaluate()
+                # logger.info('normA = {}'.format(normA['g']))
+                # normb = get_norm(b).evaluate()
+                # logger.info('normb = {}'.format(normb['g']))
             except:
-                logger.info('failed to load vector potential (magnetic field) data. Continuing with just the flow state assuming we loaded from hydro...')
+                logger.info('failed to load vector potential (magnetic field) data. Continuing with just the flow state assuming we loaded from hydro... A-field seed = {}'.format(seed))
                 # A['g'][0] = -2*B0_z*np.cos(np.pi*x / Lx) / (np.pi / Lx)
-                A.fill_random()
-                A.low_pass_filter(scales=1.0)
+
+                A.fill_random(seed=seed)
+                # if Ny > 4:
+                #     A.low_pass_filter(scales=0.25)
                 A['g'] *= ic_scale_A * (x - Lx/2) * (x + Lx/2)
                 logger.info('appending noisy magnetic field to existing hydro initial condition')
         imported_time = file['scales']['sim_time'][()][0]
         if doLoadTimestep:
             init_timestep = file['scales']['timestep'][()][0]
-    if 'kin' in suffix:
-        logger.info('normalizing magnetic potential...')
-        A_normed = (A / get_norm(A)).evaluate()
+    if doDivClean:
+        logger.info('cleaning vector potential')
+        Aclean_data = vp_bvp_func(b.evaluate())
+        A.change_scales(1)
+        A['g'] = Aclean_data.copy()
+    if 'kin' in suffix or 'floquet' in suffix:
+        # logger.info('normalizing magnetic potential...')
+        # A_normed = (A / get_norm(A)).evaluate()
+        # A_normed.change_scales(1)
+        # A.change_scales(1)
+        # A['g'] = A_normed['g'].copy()
+        
+        logger.info('normalizing magnetic field...')
+        A_normed = (A / get_norm(b)).evaluate()
         A_normed.change_scales(1)
         A.change_scales(1)
         A['g'] = A_normed['g'].copy()
 
 # u.change_scales(1)
 A.change_scales(1)
-if doLoadVelocity:
-    uinit.change_scales(dealias)
+# if doLoadVelocity:
+#     uinit.change_scales(dealias)
 uinit['g'] = u['g'].copy()
-Ainit['g'] = A['g'].copy()
-binit.change_scales(dealias)
-binit['g'] = b.evaluate()['g'].copy()
+if not isHydro:
+    Ainit['g'] = A['g'].copy()
+    Ainit_hat = (Ainit / get_norm(Ainit)).evaluate()
+
+    binit.change_scales(dealias)
+    binit['g'] = b.evaluate()['g'].copy()
 
 useCFL = True
 if not doLoadVelocity and not isKinematic:
@@ -393,7 +454,6 @@ else:
 
 mode_sin_lst = []
 mode_cos_lst = []
-Nmodes_track = 10
 for i in range(Nmodes_track):
     ki = i + 1
     mode_temp = dist.Field(name='mode_sin{}'.format(ki), bases=zbasis)
@@ -406,7 +466,7 @@ for i in range(Nmodes_track):
 def get_z_mode_amplitude(mode_number, field):
     mode_sin = mode_sin_lst[mode_number - 1]
     mode_cos = mode_cos_lst[mode_number - 1]
-    projected_field = np.sqrt(integz(field * mode_sin)**2) + np.sqrt(integz(field * mode_cos)**2)
+    projected_field = (integz(u*mode_sin))@(integz(u*mode_sin)) + (integz(u*mode_cos))@(integz(u*mode_cos))
     return integy(integx((projected_field))) / vol
 
 
@@ -422,10 +482,10 @@ if 'floquet' in suffix:
     u_record = u * y_unity
 elif is2d:
     u_record = u * y_unity
+A_record_hat = A_record / get_norm(A_record)
 
-
-sparse_output = isKinematic and not isHydro
-# sparse_output = isKinematic
+# sparse_output = isKinematic and not isHydro
+sparse_output = True
 
 if scalars_sim_dt != 0:
     scalars = solver.evaluator.add_file_handler(path + '/scalars', sim_dt=scalars_sim_dt, max_writes=1000, mode=fh_mode)
@@ -435,6 +495,8 @@ if scalars_sim_dt != 0:
     scalars.add_task(d3.Integrate(0.5 * (u_record @ ex)**2) / vol, name = 'ke_x')
     scalars.add_task(d3.Integrate((u_record - uinit) @ (u_record - uinit)) / vol, name = 'udiff')
     scalars.add_task(d3.Integrate(u_record @ d3.curl(u_record) / vol), name = 'uhelicity')
+    if track_ut:
+        scalars.add_task(d3.Integrate(ut @ ut / vol), name = 'ut_sqrd')
     if not isHydro:
         num_keff = d3.Integrate(d3.curl(b_record) @ d3.curl(b_record))
         den_keff = d3.Integrate(b_record @ b_record)
@@ -442,6 +504,7 @@ if scalars_sim_dt != 0:
 
         scalars.add_task(d3.Integrate(A_record @ b_record / vol), name = 'bhelicity')
         scalars.add_task(d3.Integrate((A_record - Ainit) @ (A_record - Ainit)) / vol, name = 'Adiff')
+        scalars.add_task(d3.Integrate((A_record_hat - Ainit_hat) @ (A_record_hat - Ainit_hat)) / vol, name = 'Adiff_hat')
         scalars.add_task(d3.Integrate(0.5 * (b_record @ b_record)) / vol, name = 'be')
         scalars.add_task(d3.Integrate(0.5 * (b_record @ ey)**2) / vol, name = 'be_y')
         scalars.add_task(d3.Integrate(0.5 * (b_record @ ez)**2) / vol, name = 'be_z')
@@ -482,16 +545,14 @@ if scalars_sim_dt != 0:
         scalars.add_task(get_z_mode_amplitude(n, u@u), name = 'ke_mode{}'.format(n))
         if not isHydro:
             scalars.add_task(get_z_mode_amplitude(n, b_record@b_record), name = 'be_mode{}'.format(n))
-    if not sparse_output:
-        for ki in range(Nmodes_track):
-            add_mode_n(ki + 1)
-
-mode2_sin = np.sin(2*z_field)
-mode2_cos = np.cos(2*z_field)
+    # if not sparse_output:
+    for ki in range(Nmodes_track):
+        add_mode_n(ki + 1)
 
 mode1_sinz = np.sin(z_field)
 mode1_cosz = np.cos(z_field)
-
+mode2_sinz = np.sin(2*z_field)
+mode2_cosz = np.cos(2*z_field)
 mode1_siny = np.sin(y_field)
 mode1_cosy = np.cos(y_field)
 
@@ -499,11 +560,11 @@ if sp_sim_dt != 0 :
     slicepoints = solver.evaluator.add_file_handler(path + '/slicepoints', sim_dt=sp_sim_dt, max_writes=50, mode=fh_mode)
 
     if not sparse_output:
-        slicepoints.add_task(integz(integy((u @ ey)*mode2_sin)), name = "sin_1d_uy")
-        slicepoints.add_task(integz(integy((u @ ey)*mode2_cos)), name = "cos_1d_uy")
+        slicepoints.add_task(integz(integy((u @ ey)*mode2_sinz)), name = "sin_1d_uy")
+        slicepoints.add_task(integz(integy((u @ ey)*mode2_cosz)), name = "cos_1d_uy")
 
-        slicepoints.add_task(integz(integy((b @ ey)*mode2_sin)), name = "sin_1d_by")
-        slicepoints.add_task(integz(integy((b @ ey)*mode2_cos)), name = "cos_1d_by")
+        slicepoints.add_task(integz(integy((b @ ey)*mode2_sinz)), name = "sin_1d_by")
+        slicepoints.add_task(integz(integy((b @ ey)*mode2_cosz)), name = "cos_1d_by")
 
         slicepoints.add_task(integz(integy((b @ ey)*mode1_siny*mode1_sinz)), name = "sinysinz_by")
         slicepoints.add_task(integz(integy((b @ ey)*mode1_siny*mode1_cosz)), name = "sinycosz_by")
@@ -548,8 +609,10 @@ if cp_sim_dt != 0:
     checkpoint = solver.evaluator.add_file_handler(path + '/checkpoint', max_writes=1, sim_dt=cp_sim_dt, mode=fh_mode)
     checkpoint.add_task(u, name = 'u', layout='g', scales=cp_scale)
     if not isHydro:
-        checkpoint.add_task(A_record, name = 'A', layout='g', scales=cp_scale)
-        checkpoint.add_task(b_record, name = 'b', layout='g', scales=cp_scale)
+        checkpoint.add_task(A, name = 'A', layout='g', scales=cp_scale)
+        # checkpoint.add_task(A_record, name = 'A', layout='g', scales=cp_scale)
+        checkpoint.add_task(b, name = 'b', layout='g', scales=cp_scale)
+        # checkpoint.add_task(b_record, name = 'b', layout='g', scales=cp_scale)
 
 
 # Flow properties
@@ -557,6 +620,10 @@ flow = d3.GlobalFlowProperty(solver, cadence=logger_cadence)
 
 flow.add_property(d3.dot(u,u)*Re, name='Re')
 flow.add_property(0.5*d3.dot(u,u), name='Ke')
+
+for i in range(Nmodes_track):
+    flow.add_property(get_z_mode_amplitude(i+1, u@u), name='Ke{}'.format(i+1))
+
 if not isHydro:
     flow.add_property(d3.dot(u,u)*Rm, name='Rm')
     flow.add_property((d3.dot(A,A)), name='A_norm')
@@ -568,9 +635,16 @@ flow.add_property(0.5*(d3.curl(u)@ey)**2, name='enstr_y')
 flow.add_property(0.5*(d3.curl(u)@ez)**2, name='enstr_z')
 flow.add_property(0.5*(d3.curl(u)@ex)**2, name='enstr_x')
 flow.add_property(u@u, name='u.u')
+if track_ut:
+    flow.add_property(ut@ut, name='ut_sqrd')
+
 solver.evaluator.evaluate_handlers((flow.properties, ))
 
 logger.info('Starting main loop')
+
+if track_ut:
+    solver.step(init_timestep)
+    solver.step(init_timestep)
 
 while solver.proceed:
     # if 'kin' in suffix or 'floquet' in suffix:
@@ -581,22 +655,19 @@ while solver.proceed:
     if (solver.iteration-1) % logger_cadence == 0:
         max_Re = flow.max('Re')
         mean_Ke = flow.grid_average('Ke')
+        mean_Ke_lst = np.array([flow.grid_average('Ke' + str(i + 1)) for i in range(Nmodes_track)])
         mean_enstr_y = flow.grid_average('enstr_y')
         mean_enstr_z = flow.grid_average('enstr_z')
         mean_enstr_x = flow.grid_average('enstr_x')
         mean_unorm = np.sqrt(flow.volume_integral('u.u') / Ly / Lz / Lx)
-
         stop = False
         stop = stop or np.isnan(max_Re)
         stop = stop or np.isnan(mean_Ke)
-        stop = stop or np.isnan(mean_Ke)
         if not isHydro:
             stop = stop or np.isnan(flow.grid_average('A_norm'))
+            # stop = stop or flow.volume_integral('b.b') / vol < 1e-11
+            # stop = stop or flow.grid_average('A_norm') 
 
-        stop = stop or timestep < 1e-6
-        if stop:
-            logger.info('something is NAN. Terminating simulation. Get your shit together.')
-            sys.exit()
         loop_message = ""
         loop_message += "Iteration={}; ".format(solver.iteration)
         loop_message += "Time={}; ".format(solver.sim_time)
@@ -604,6 +675,14 @@ while solver.proceed:
         loop_message += "mean(unorm)={}; ".format(mean_unorm)
         loop_message += "max(Re)={}; ".format(max_Re)
         loop_message += "avg(Ke)={}; ".format(mean_Ke)
+        for i, ke_comp in enumerate(mean_Ke_lst):
+            loop_message += "avg(Ke{})={}; ".format(i + 1, ke_comp)
+        if track_ut:
+            mean_ut_sqrd = flow.volume_integral('ut_sqrd') / Ly / Lz / Lx
+            loop_message += "mean_ut_sqrd={}; ".format(mean_ut_sqrd)
+            if mean_ut_sqrd < 1e-4:
+                logger.info('velocity field is not evolving. assuming dynamo has died and stopping simulation')
+                sys.exit()
         if not isHydro:
             max_bdotb = flow.max('b.b')
             norm_b = np.sqrt(flow.volume_integral('b.b') / Ly / Lz / Lx)
@@ -613,7 +692,15 @@ while solver.proceed:
             max_Rm = flow.max('Rm')
             loop_message += "max(Rm)={}; ".format(max_Rm)
             loop_message += "A_norm={}; ".format(mean_A_norm)
-            loop_message += "relative_bdotgrad_b_meany={}; ".format(relative_bdotgrad_b_meany)
+            # loop_message += "relative_bdotgrad_b_meany={}; ".format(relative_bdotgrad_b_meany)
             loop_message += "norm_b={}; ".format(norm_b)
         logger.info(loop_message)
+        stop = stop or timestep < 1e-6
+        if stop:
+            logger.info('something is NAN. Terminating simulation. Get your shit together.')
+            sys.exit()
+
+        # if (solver.sim_time > 500 or "RSTRT" in suffix) and (norm_b < 0.01 and mean_Ke_lst[0] > mean_Ke_lst[1]):
+        #     logger.info('dynamo appears to be dead. Stopping simulation.')
+        #     sys.exit()
     solver.step(timestep)

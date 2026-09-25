@@ -45,7 +45,7 @@ if name == 'None':
     print('specify name')
     raise
 
-restart_file = path + "/../kin_2p6d_Rm1500_RSTRT5/checkpoint/checkpoint_s{}.h5".format(restartN)
+restart_file = path + "/../kin_ky1_Rm1p5e3_PLOT/checkpoint/checkpoint_s{}.h5".format(restartN)
 
 logger.info("####################################################################")
 logger.info("restartN = {}".format(restartN))

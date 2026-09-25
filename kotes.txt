@@ -1,0 +1,159 @@
+1p5e2
+
+
+1p5e3
+Nz=256
+
+1p5e4
+Nz=256
+B ~= 2
+
+1p5e5
+
+
+1p5e6
+Nz=4096
+B ~= 4
+
+Rm ~ 1/eta
+l ~ 1 / sqrt(Rm) 
+l ~ 1 / Nz
+Nz ~ sqrt(Rm)
+Nz = B*sqrt(Rm)
+
+eta ~ m^2 / s ~ l^2
+
+
+>>> for i in range(33):
+...     print(1.5*10**(1+i/6))
+... 
+15.0
+
+
+22.01698901433105
+32.31652035047825
+47.43416490252569
+69.62383250419165
+102.19381035869424
+150.0
+220.16989014331057
+323.1652035047823
+474.34164902525697
+696.2383250419173
+1021.9381035869412
+1500.0
+2201.6989014331034
+3231.6520350478268
+4743.416490252569
+6962.383250419166
+10219.381035869423
+15000.0
+22016.989014331015
+32316.5203504783
+47434.16490252569
+69623.83250419158
+102193.81035869433
+150000.0
+220169.8901433106
+323165.20350478234
+474341.64902525686
+696238.3250419174
+1021938.1035869413
+1500000.0
+2201698.901433106
+3231652.0350478236
+
+###### Kinematic Growth Rate / Keff Runs
+
+[1024, 0.0025, 256]   --> delta t / min = 1.5
+[6144, 0.00015, 512]  --> delta t / min = 
+
+ky=0.18 ; Ly=34.90658503988659:
+[RUN] kin_ky0p18_Rm2p2e1 (n not an integer)
+[RUN] kin_ky0p18_Rm3p2e1 (n not an integer)
+[RUN] kin_ky0p18_Rm4p7e1 (n=?) 
+[RUN] kin_ky0p18_Rm7p0e1 (n=?)
+[RUN] kin_ky0p18_Rm1p0e2 (n=2)
+kin_ky0p18_Rm1p5e2 [256, 0.01]
+[RUN] kin_ky0p18_Rm2p2e2 (n=2)
+[RUN] kin_ky0p18_Rm3p2e2 (n=2)
+[RUN] kin_ky0p18_Rm4p7e2 (n=2)
+[RUN] kin_ky0p18_Rm7p0e2 (n=2)
+[RUN] kin_ky0p18_Rm1p0e3 (n=2)
+kin_ky0p18_Rm1p5e3 [256, 0.01]
+[RUN] kin_ky0p18_Rm2p2e3
+[RUN] kin_ky0p18_Rm3p2e3
+[RUN] kin_ky0p18_Rm4p7e3
+[RUN] kin_ky0p18_Rm7p0e3
+[RUN] kin_ky0p18_Rm1p0e4
+kin_ky0p18_Rm1p5e4 [256, 0.01]
+[RUN] kin_ky0p18_Rm2p2e4 [512, 0.0025] 
+[RUN] kin_ky0p18_Rm3p2e4 [512, 0.0025]
+[RUN] kin_ky0p18_Rm4p7e4 [512, 0.0025]
+[RUN] kin_ky0p18_Rm7p0e4 [512, 0.0025]
+[RUN] kin_ky0p18_Rm1p0e5 [512, 0.0025]
+kin_ky0p18_Rm1p5e5 [1024, 0.001]
+[RUN] kin_ky0p18_Rm2p2e5
+[RUN] kin_ky0p18_Rm3p2e5
+[RUN] kin_ky0p18_Rm4p7e5
+[RUN] kin_ky0p18_Rm7p0e5
+[RUN] kin_ky0p18_Rm1p0e6
+[RSTRTed] kin_ky0p18_Rm1p5e6
+[RSTRTed] kin_ky0p18_Rm2p2e6
+kin_ky0p18_Rm3p2e6 [4096, 0.00025]
+kin_ky0p18_Rm3p2e6_hires [6144, 0.00015, 512]
+kin_ky0p18_Rm3p2e6_hires_RSTRT1 [6144, 0.0005, 512]
+[These all appear to have a period of 46.66]
+
+In progress:
+kin_ky0p18_Rm3p2e6 [4096, 0.00025]
+
+failed jobs:
+kin_ky0p18_Rm3p2e6_RSTRT1
+
+
+ky=0.29 ; Ly=21.666156231653748
+[2T] kin_ky0p29_Rm1p5e2 [256, 0.01]
+[2T] kin_ky0p29_Rm1p5e3 [256, 0.01]
+[2T] kin_ky0p29_Rm1p5e4 [512, 0.005]
+[2T] kin_ky0p29_Rm1p5e5 [1024, 0.0025]
+
+[2T] kin_ky0p29_Rm1p0e2
+[2T] kin_ky0p29_Rm7p0e1
+[2T] kin_ky0p29_Rm4p7e1
+[2T] kin_ky0p29_Rm3p2e1
+[2T] kin_ky0p29_Rm2p2e1
+
+
+2DO: 
+kin_ky0p29_Rm1p5e6 [4096, 0.0005]
+
+ky=1.0 ; Ly=2*np.pi
+[T]   kin_ky1_Rm7e2_RSTRT2
+[T]  kin_ky1_Rm1p5e3 [256, 0.01]
+[2T] kin_ky1_Rm1p5e4 [512, 0.005]
+[2T] kin_ky1_Rm1p5e5 [1024, 0.0025]
+
+2DO: kin_ky1_Rm1p5e6 [4096, 0.0005]
+
+###### Floquet Runs
+floquet-Rm1500-2
+floquet_kin_ky0p18_Rm1p5e4
+
+N = A sqrt(Rm)
+
+256  - 1e4 --> A = 2.56 
+1024 - 
+4096 - 1e6 --> A = 4.096
+suffices_ky0p18.txt
+
+0.05 delta t / 1 min
+
+FFT
+nl_ky1_Rm1p5e3_fromscratch
+floquet-Rm1500-2/
+
+14369254     x-loconnor     mth240048     nl_ky1_Rm3p2e3_s     1    128  1-00:00:00  R 9:20:52
+14369253     x-loconnor     mth240048     nl_ky1_Rm3p2e3_s     1    128  1-00:00:00  R 18:14:42
+14369252     x-loconnor     mth240048     nl_ky1_Rm3p2e3_s     1    128  1-00:00:00  R 18:36:14
+14369249     x-loconnor     mth240048     nl_ky1_Rm3p2e3_s     1    128  1-00:00:00  R 18:38:22

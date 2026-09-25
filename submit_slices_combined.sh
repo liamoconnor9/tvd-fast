@@ -7,22 +7,16 @@
 #SBATCH --mail-type=all   # Send email to above address at begin and end of job
 #SBATCH --nodes=1
 #SBATCH --ntasks=128
-#SBATCH --time=2:00:00
-#SBATCH --job-name plot
+#SBATCH --time=0:30:00
+#SBATCH --job-name slices_combined
+
+# Submit with the run-directory suffixes you'd otherwise pass to slices.sh, e.g.:
+#   sbatch submit_slices_combined.sh Ro3p5_Lz8pi_Ny16_Rm175 Ro3p5_Lz8pi_Ny16_Rm175_RSTRT1
+# Everything after the script name is forwarded to slices.sh as "$@".
 
 source /home/x-loconnor/.bashrc
 conda activate dedalus3
 export MPI_UNBUFFERED_STDIO=true
 
-source ~/png2mp4.sh
-
-FILE="$(readlink -f "$0")"
-DIR="$(dirname "$(readlink -f "$0")")/"
-
-PROCS=128
-# cd $DIR
-# cd ~/tvd-fast/
-# bash slices.sh nl_ky1_Rm3e3 $PROCS
-
-cd ~/tvd-fast/ftle
-python3 plot_four.py
+cd ~/tvd-fast/
+bash slices.sh "$@"

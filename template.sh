@@ -34,8 +34,9 @@ echo "currently in (skip. her's ls)"
 echo $DIR
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 echo $SCRIPT_DIR
-cat options.cfg > ~/lksdjfsl.cfg
-source ~/lksdjfsl.cfg
-rm ~/lksdjfsl.cfg
+CFGTMP=$(mktemp)
+cat options.cfg > "$CFGTMP"
+source "$CFGTMP"
+rm "$CFGTMP"
 echo "CONFIG SUFIX SUPPLIED: $suffix" 
 mpirun -np $MPIPROC python3 $SOLVER $CONFIG

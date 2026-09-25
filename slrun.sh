@@ -57,6 +57,7 @@ run_func () {
         echo "TIMESTAMP:  ${TIMESTAMP}"   >>  $DIR/pilot.txt
         echo "JOBID:      ${OUT_SBATCH}"    >>  $DIR/pilot.txt
         echo "JOBNAME:    ${suffix}"      >>  $DIR/pilot.txt
+        echo "jobid=${OUT_SBATCH##* }" >> options.cfg
     fi
 }
 
@@ -76,6 +77,7 @@ CONFIG="options.cfg"
 LOAD_IC="load_ic.py"
 
 cd $DIR
+sed -i '/^jobid=/d' options.cfg
 
 source $CONFIG
 echo "SUITE SUFIX SUPPLIED: $suffix"
@@ -100,13 +102,19 @@ if [ -d "$suffix" ]; then
     rm -rf $suffix
 fi
 
-
 mkdir $suffix
-# mkdir "$suffix/data"
 cp $CONFIG $suffix
 cp $SOLVER $suffix
 cp $TEMPLATE $suffix
+cp default_d3_config.cfg $suffix/dedalus.cfg
+
 cd $suffix
+
+if [ "$doGather" = "False" ]; then
+    echo "FILEHANDLER_PARALLEL_DEFAULT = virtual" >> dedalus.cfg
+else
+    echo "FILEHANDLER_PARALLEL_DEFAULT = gather" >> dedalus.cfg
+fi
 
 sed -i "/#SBATCH -A mth240048/ i #SBATCH --job-name $suffix " $DIR/$suffix/$TEMPLATE
 

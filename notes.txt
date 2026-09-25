@@ -1,0 +1,15 @@
+Successful QL skd with four vortex pairs: Ro3p5_Lz4pi_ql_Rm300
+Successful 3D skd with four vortex pairs: Ro3p5_Lz4pi_Ny16_Rm200_RSTRT*
+Successful 3D skd with two  vortex pairs: Ro3p5_Ly22_Rm1000_Ny16_skd
+
+sbatch submit_slices_combined.sh Ro3p5_Lz8pi_Ny16_Rm175 Ro3p5_Lz8pi_Ny16_Rm175_RSTRT1
+
+bash slices.sh Ro3p5_Lz8pi_Ny16_Rm175 --chain --stride=100 --kezmodes
+bash slices.sh Ro3p5_Lz4pi_Ny16_Rm200 --chain --stride=20 --kezmodes --energies
+
+sbatch submit_slices_combined.sh Ro3p5_Ly22_Rm1000_ql_skd --stride=4 --kezmodes --energies
+
+bash submit_skd.sh 48
+bash ke_ratio.sh skd*_Ro3p5_Rm8e2_Ny16_Lz2pi -w
+
+for skd runs, delete checkpoints after they're confirmed dead.

@@ -17,17 +17,17 @@ export MPI_UNBUFFERED_STDIO=true
 source ~/png2mp4.sh
 
 FILE="$(readlink -f "$0")"
-DIR="$(dirname "$(readlink -f "$0")")/"
+# DIR="$(dirname "$(readlink -f "$0")")/"
 
 PROCS=16
-cd $DIR
+cd ~/tvd-fast/ftle
 
-# mpirun -n $PROCS python3 shear_paths_new.py --restartN=33 --name=NW_33
-# mpirun -n $PROCS python3 shear_paths_new.py --restartN=33 --name=NE_33
-# mpirun -n $PROCS python3 shear_paths_new.py --restartN=33 --name=SW_33
-# mpirun -n $PROCS python3 shear_paths_new.py --restartN=33 --name=SE_33
+# mpirun -n $PROCS python3 shear_paths_new.py --restartN=72 --name=NW_72
+# mpirun -n $PROCS python3 shear_paths_new.py --restartN=72 --name=NE_72
+# mpirun -n $PROCS python3 shear_paths_new.py --restartN=72 --name=SW_72
+# mpirun -n $PROCS python3 shear_paths_new.py --restartN=72 --name=SE_72
 
-# mpirun -n $PROCS python3 shear_paths_new.py --restartN=1 --name=NW_1
-# mpirun -n $PROCS python3 shear_paths_new.py --restartN=1 --name=NE_1
-# mpirun -n $PROCS python3 shear_paths_new.py --restartN=1 --name=SW_1
-mpirun -n $PROCS python3 shear_paths_new.py --restartN=1 --name=SE_1
+# mpirun -n $PROCS python3 shear_paths_new.py --restartN=40 --name=NW_40
+# mpirun -n $PROCS python3 shear_paths_new.py --restartN=40 --name=NE_40
+# mpirun -n $PROCS python3 shear_paths_new.py --restartN=40 --name=SW_40
+mpirun -n $PROCS python3 shear_paths_new.py --restartN=40 --name=SE_40

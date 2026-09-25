@@ -1,0 +1,45 @@
+# ky=0.18 ; Ly=34.90658503988659:
+kin_ky0p18_Rm2p2e1 (n not an integer)
+kin_ky0p18_Rm3p2e1 (n not an integer)
+kin_ky0p18_Rm4p7e1 (n not an integer) 
+kin_ky0p18_Rm7p0e1 (n=2)
+kin_ky0p18_Rm1p0e2 (n=2)
+kin_ky0p18_Rm1p5e2 (n=2) [256, 0.01]
+kin_ky0p18_Rm2p2e2 (n=2)
+kin_ky0p18_Rm3p2e2 (n=2)
+kin_ky0p18_Rm4p7e2 (n=2)
+kin_ky0p18_Rm7p0e2 (n=2)
+kin_ky0p18_Rm1p0e3 (n=2)
+kin_ky0p18_Rm1p5e3 [256, 0.01]
+kin_ky0p18_Rm2p2e3 (n=2)
+kin_ky0p18_Rm3p2e3 (n=2)
+kin_ky0p18_Rm4p7e3 (n=2)
+kin_ky0p18_Rm7p0e3 (n=2)
+kin_ky0p18_Rm1p0e4 (n=2)
+# kin_ky0p18_Rm1p5e4 (n=2) [256, 0.01]
+kin_ky0p18_Rm1p5e4_RSTRT1 (n=2) [512, 0.0025]
+kin_ky0p18_Rm2p2e4 (n=2) [512, 0.0025] 
+kin_ky0p18_Rm3p2e4 (n=2) [512, 0.0025]
+# [BAD] kin_ky0p18_Rm4p7e4 [512, 0.0025]
+kin_ky0p18_Rm4p7e4_RSTRT1 [1024, 0.001]
+# [BAD] kin_ky0p18_Rm7p0e4 (n=2) [512, 0.0025]
+kin_ky0p18_Rm7p0e4_RSTRT1 [1024, 0.001]
+# [BAD] kin_ky0p18_Rm1p0e5 (n=2) [512, 0.0025]
+kin_ky0p18_Rm1p0e5_RSTRT1  [1024, 0.001]
+# [BAD] kin_ky0p18_Rm1p5e5 [1024, 0.001]
+kin_ky0p18_Rm1p5e5_RSTRT1 [2048, 0.0005]
+# [BAD] kin_ky0p18_Rm2p2e5 [2048, 0.0005]
+kin_ky0p18_Rm2p2e5_RSTRT1 [4096, 0.00025]
+# [BAD] kin_ky0p18_Rm3p2e5 [2048, 0.0005]
+kin_ky0p18_Rm3p2e5_RSTRT1 [4096, 0.00025]
+# [BAD] kin_ky0p18_Rm4p7e5 [2048, 0.0005]
+kin_ky0p18_Rm4p7e5_RSTRT1 [4096, 0.00025]
+# [BAD] kin_ky0p18_Rm7p0e5 [2048, 0.0005]
+kin_ky0p18_Rm7p0e5_RSTRT1 [4096, 0.00025]
+# [BAD] kin_ky0p18_Rm1p0e6 [2048, 0.0005]
+kin_ky0p18_Rm1p0e6_RSTRT1 [4096, 0.00025]
+kin_ky0p18_Rm1p5e6_RSTRT1
+kin_ky0p18_Rm2p2e6_RSTRT1
+kin_ky0p18_Rm3p2e6_RSTRT1 [4096, 0.00025]
+kin_ky0p18_Rm3p2e6_hires [6144, 0.00015, 512]
+# kin_ky0p18_Rm3p2e6_hires_RSTRT1 [6144, 0.0005, 512]

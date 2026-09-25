@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import h5py
 import glob
 import sys
+plt.style.use('dark_background')
 
 def get_label(arg):
     if arg == 'jy':
@@ -11,17 +12,17 @@ def get_label(arg):
     elif arg == 'jz':
         return r"$\langle j_z \rangle$"
     elif arg == 'be_y':
-        return r"$0.5\langle b_y^2 \rangle$"
+        return r"$0.5\langle |b_y^2| \rangle$"
     elif arg == 'be_z':
-        return r"$0.5\langle b_z^2 \rangle$"
+        return r"$0.5\langle |b_z^2| \rangle$"
     elif arg == 'be_x':
-        return r"$0.5\langle b_x^2 \rangle$"
+        return r"$0.5\langle |b_x^2| \rangle$"
     elif arg == 'ke_y':
-        return r"$0.5\langle u_y^2 \rangle$"
+        return r"$0.5\langle |u_y^2| \rangle$"
     elif arg == 'ke_z':
-        return r"$0.5\langle u_z^2 \rangle$"
+        return r"$0.5\langle |u_z^2| \rangle$"
     elif arg == 'ke_x':
-        return r"$0.5\langle u_x^2 \rangle$"
+        return r"$0.5\langle |u_x^2| \rangle$"
 
 
     else:
@@ -29,13 +30,13 @@ def get_label(arg):
 
 def get_color(label):
     if label == 'be_y':
-        return 'deepskyblue'
+        return 'blue'
     elif label == 'be_z':
         return 'orange'
     elif label == 'be_x':
         return 'green'
     elif label == 'ke_y':
-        return 'magenta'
+        return 'red'
     elif label == 'ke_z':
         return 'purple'
     elif label == 'ke_x':
@@ -55,7 +56,6 @@ def get_title():
     # return r"Ro$=$" + str(Ro) + r"; $Pm=$" + str(Pm) + r"; $\nu=$" + str(nu)
 
 def plot_energies(dir, prefix='ke'):
-    plt.figure(figsize=(4, 3))
     files = glob.glob("{}scalars/*.h5".format(dir))
     last_index = len(files)
     for file in files:
@@ -87,7 +87,6 @@ def plot_energies(dir, prefix='ke'):
         }
 
         start_ind = 0
-
         for label in labels:
             if prefix in label:
                 if file == files[0]:
@@ -106,19 +105,14 @@ def plot_energies(dir, prefix='ke'):
     plt.xlabel("time")
     plt.ylabel("energy")
     plt.yscale('log')
-    plt.savefig('{}energies_{}.png'.format(dir, prefix))
-    print('{}energies_{}.png'.format(dir, prefix))
+    plt.savefig('{}energies_{}_d.png'.format(dir, prefix))
+    print('{}energies_{}_d.png'.format(dir, prefix))
     plt.close()
 
-def plot_2energies(dir, prefix='ke', config=None):
-    try:
-        Rm = config.getfloat('parameters', 'Rm')
-    except:
-        Rm = None
+def plot_2energies(dir, prefix='ke'):
     plt.figure(figsize=(4, 3))
     files = glob.glob("{}scalars/*.h5".format(dir))
     last_index = len(files)
-    max_sim_time = 0
     for file in files:
         if "_s{}.h5".format(last_index) in file:
             print("success")
@@ -127,7 +121,6 @@ def plot_2energies(dir, prefix='ke', config=None):
         with h5py.File(file, "r") as f:
 
             sim_times = f['scales']['sim_time'][()]
-            max_sim_time = max(max_sim_time, max(sim_times))
 
             be_y = f['tasks']['be_y'][()].ravel()
             be_z = f['tasks']['be_z'][()].ravel()
@@ -143,46 +136,37 @@ def plot_2energies(dir, prefix='ke', config=None):
             'be_y' : be_y            # r"$\langle\frac{1}{2\tau}|\mathbf{u}|^2\rangle$" : damp_power
         }
 
+        colors_d = {
+            'ke_y' : 'cyan',
+            'be_y' : 'lime'            # r"$\langle\frac{1}{2\tau}|\mathbf{u}|^2\rangle$" : damp_power
+        }
+
         start_ind = 0
         for label in labels:
             if prefix in label:
                 if file == files[0]:
                     if prefix == '' and 'ke' in label:
-                        plt.plot(sim_times[start_ind:], labels[label][start_ind:], label=get_label(label), linestyle='solid', color=get_color(label))
+                        plt.plot(sim_times[start_ind:], labels[label][start_ind:], label=get_label(label), linestyle='solid', color=colors_d[label])
                     else:
-                        plt.plot(sim_times[start_ind:], labels[label][start_ind:], label=get_label(label), color=get_color(label))
+                        plt.plot(sim_times[start_ind:], labels[label][start_ind:], label=get_label(label), color=colors_d[label])
                 else:
                     if prefix == '' and 'ke' in label:
-                        plt.plot(sim_times[start_ind:], labels[label][start_ind:], linestyle='solid', color=get_color(label))
+                        plt.plot(sim_times[start_ind:], labels[label][start_ind:], linestyle='solid', color=colors_d[label])
                     else:
-                        plt.plot(sim_times[start_ind:], labels[label][start_ind:], color=get_color(label))
+                        plt.plot(sim_times[start_ind:], labels[label][start_ind:], color=colors_d[label])
     plt.legend(framealpha=0.0)
     # plt.legend(framealpha=0.0, ncol=3, loc='upper center', bbox_to_anchor=(0.5, 0.9))
-    # plt.title(get_title())
+    plt.title(get_title())
 
     # plt.title(r"$\tau=$" + str(tau))
-    if '1e3' in dir:
-        plt.ylabel("nonlinear")
     plt.xlabel("time")
-    plt.xlim(left=0)
-    max_sim_time = min(max_sim_time, 1e4)
-    plt.xlim(right=max_sim_time)
-    if not 'seed' in dir:
-        plt.xlim(right=9999)
-        plt.ylim(bottom=1e-6)
-    else:
-        plt.title(r"Rm = "+str(int(Rm)))
-        
-
+    # plt.xlim(1000, 1500)
     # plt.ylim(3e-2, 0.15)
-    # if not 'seed' in dir:
-    #     plt.ylabel(" ")
+    # plt.ylabel("energy")
     plt.yscale('log')
     plt.tight_layout()
-    plt.savefig('{}energies2_{}.png'.format(dir, prefix))
-    print('{}energies2_{}.png'.format(dir, prefix))
-    plt.savefig('{}energies2_{}.pdf'.format(dir, prefix))
-    print('{}energies2_{}.pdf'.format(dir, prefix))
+    plt.savefig('{}energies2_{}_d.png'.format(dir, prefix))
+    print('{}energies2_{}_d.png'.format(dir, prefix))
     plt.close()
 
 def plot_j(dir):
@@ -227,7 +211,7 @@ def plot_j(dir):
     plt.xlabel("time")
     plt.ylabel("current density")
     # plt.yscale('log')
-    figname = "{}j_mean.png".format(dir)
+    figname = "{}j_mean_d.png".format(dir)
     plt.savefig(figname)
     print(figname)
     plt.close()
@@ -269,7 +253,7 @@ def plot_task(dir, task, logscale=False):
         plt.ylim(7e-2, 8e-2)
     # plt.yscale('log')
     plt.tight_layout()
-    figname = "{}{}.png".format(dir,task)
+    figname = "{}{}_d.png".format(dir,task)
     plt.savefig(figname)
     print(figname)
     plt.close()
@@ -305,7 +289,7 @@ def plot_tasks(dir, tasks, logscale=False):
         plt.ylim(1e-16, 1e-1)
 
     # plt.yscale('log')
-    figname = "{}{}.png".format(dir,task)
+    figname = "{}{}_d.png".format(dir,task)
     plt.savefig(figname)
     print(figname)
     plt.close()
@@ -338,8 +322,8 @@ def plot_12_phase(dir, prefix='ke'):
     plt.ylabel("mode 2")
     # plt.yscale('log')
     plt.tight_layout()
-    plt.savefig('{}{}phase_12.png'.format(dir, prefix))
-    print('{}{}phase_12.png'.format(dir, prefix))
+    plt.savefig('{}{}phase_12_d.png'.format(dir, prefix))
+    print('{}{}phase_12_d.png'.format(dir, prefix))
     plt.close()
 
 def plot_zmodes(dir, prefix='ke'):
@@ -347,11 +331,11 @@ def plot_zmodes(dir, prefix='ke'):
     def color10(label):
         ki = int(label[7:])
         if ki == 1:
-            return 'black'
+            return 'cyan'
         elif ki == 2:
-            return 'grey'
-        elif ki == 3:
             return 'lime'
+        elif ki == 3:
+            return 'magneta'
         elif ki == 4:
             return  'pink'
         elif ki == 5:
@@ -368,6 +352,13 @@ def plot_zmodes(dir, prefix='ke'):
             return 'brown'
         else:
             raise
+    def label_kez(label):
+        if label == 'ke_mode1':
+            return r"kinetic energy $(k_z=1)$"
+        if label == 'ke_mode2':
+            return r"kinetic energy $(k_z=2)$"
+        else:
+            return label
     files = glob.glob("{}scalars/*.h5".format(dir))
     last_index = len(files)
     for file in files:
@@ -380,15 +371,11 @@ def plot_zmodes(dir, prefix='ke'):
 
             sim_times = f['scales']['sim_time'][()]
 
-            Nmodes = 10
+            Nmodes = 2
             ke_modes = []
             for ki in range(Nmodes):
-                try:
-                    ke_modes.append(f['tasks']['{}_mode{}'.format(prefix, ki + 1)][()].ravel())
-                    labels['{}_mode{}'.format(prefix, ki + 1)] = ke_modes[-1]
-                except:
-                    # print('skipping mode {}'.format(ki + 1))
-                    continue
+                ke_modes.append(f['tasks']['{}_mode{}'.format(prefix, ki + 1)][()].ravel())
+                labels['{}_mode{}'.format(prefix, ki + 1)] = ke_modes[-1]
 
             # damp_power = -f['tasks']['damp_power'][()].ravel()
 
@@ -405,9 +392,9 @@ def plot_zmodes(dir, prefix='ke'):
         for label in labels:
             if file == files[0]:
                 if 'ke' in label:
-                    plt.plot(sim_times[start_ind:], labels[label][start_ind:], label=label, linestyle='solid', color=color10(label))
+                    plt.plot(sim_times[start_ind:], labels[label][start_ind:], label=label_kez(label), linestyle='solid', color=color10(label))
                 else:
-                    plt.plot(sim_times[start_ind:], labels[label][start_ind:], label=label, color=color10(label))
+                    plt.plot(sim_times[start_ind:], labels[label][start_ind:], label=label_kez(label), color=color10(label))
             else:
                 if 'ke' in label:
                     plt.plot(sim_times[start_ind:], labels[label][start_ind:], linestyle='solid', color=color10(label))
@@ -422,8 +409,8 @@ def plot_zmodes(dir, prefix='ke'):
     # plt.ylabel("energy")
     # plt.yscale('log')
     plt.tight_layout()
-    plt.savefig('{}{}zmodes.png'.format(dir, prefix))
-    print('{}{}zmodes.png'.format(dir, prefix))
+    plt.savefig('{}{}zmodes_d.png'.format(dir, prefix))
+    print('{}{}zmodes_d.png'.format(dir, prefix))
     plt.close()
 
 def plot_invariant(dir):
@@ -459,15 +446,15 @@ def plot_invariant(dir):
     # plt.ylim(5e-3, 5e-2)
     plt.ylabel("be_y / ke_3")
     # plt.yscale('log')
-    plt.savefig('{}invar.png'.format(dir))
-    print('{}invar.png'.format(dir))
+    plt.savefig('{}invar_d.png'.format(dir))
+    print('{}invar_d.png'.format(dir))
     plt.close()
 
 
-config = None
+
 from configparser import ConfigParser
 try:
-    filename = "{}/options.cfg".format(sys.argv[1])
+    filename = glob.glob("{}/*.cfg".format(sys.argv[1]))[0]
     config = ConfigParser()
     config.read(str(filename))
     # Pm = config.getfloat("parameters", "Pm")
@@ -487,24 +474,52 @@ except:
 parent = sys.argv[1]
 targets = []
 seeds = []
+# for folder in glob.glob(parent + "*/"):
+#     folder = folder.replace(parent, "")
+#     folder = folder.replace("/", "")
+#     if folder.isdigit():
+#         targets.append(folder)
+#         seeds.append(int(folder))
+
+# N = len(list(range(rank, len(seeds), size)))
+
+# for i in range(rank, len(seeds), size):
+# if (rank == 0):
+    # print('plotting from simulation {} / {} on rank 0...'.format(i, N))
+# try:
+#     plot_tasks(parent + '/', ['phase_ux', 'phase_decoy'], logscale=False)
+# except Exception as e:
+#     print(e)
+#     print('failed phases')
+    
+# try:
+#     plot_task(parent + '/', "B0_energy_ratio_yz", logscale=False)
+# except Exception as e:
+#     print(e)
+#     print('failed B0_energy_ratio_yz')
+
+# try:
+#     plot_task(parent + '/', "B0_energy_ratio_y", logscale=False)
+# except Exception as e:
+#     print(e)
+#     print('failed B0_energy_ratio_y')
+
+# try:
+#     plot_task(parent + '/', 'projA', logscale=True)
+# except Exception as e:
+#     print('failed to plot projection projA')
+
+# try:
+#     plot_task(parent + '/', 'projb', logscale=True)
+# except Exception as e:
+#     print('failed to plot projection projb')
 
 try:
     plot_energies(parent + '/', prefix='')
 except Exception as e:
     print('failed to plot energies')
 try:
-    plot_zmodes(parent + '/')
-except Exception as e:
-    print(e)
-    print('failed to plot zmodes')
-try:
-    plot_task(parent + '/', 'ut_sqrd', logscale=True)
-except Exception as e:
-    print(e)
-    print('failed to plot ut_sqrd')
-
-try:
-    plot_2energies(parent + '/', prefix='', config=config)
+    plot_2energies(parent + '/', prefix='')
 except Exception as e:
     print('failed to plot energies')
     print(e)
@@ -512,6 +527,11 @@ try:
     plot_invariant(parent + '/')
 except Exception as e:
     print('failed to plot invariant')
+try:
+    plot_zmodes(parent + '/')
+except Exception as e:
+    print(e)
+    print('failed to plot zmodes')
 
 try:
     plot_12_phase(parent + '/')

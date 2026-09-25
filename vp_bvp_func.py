@@ -68,5 +68,6 @@ def vp_bvp_func(binit):
     solver.solve()
     # CW.barrier()
     # print(CW.rank)
+    A.change_scales(1)
     logger.info('bvp solved.')
     return A['g'].copy()

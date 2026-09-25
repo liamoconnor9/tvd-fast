@@ -17,11 +17,23 @@ if len(sys.argv) == 2:
 else:
     N1 = 1
     auto = False
+
+N1 = 40
 N2 = (N1 + 32) % 256
 
 if N1 == 0 or N2 == 0:
     sys.exit()
 
+Nz_plt, Nx_plt = 2048, 512
+
+
+# suffix = "kin_ky1_Rm1p5e5_PLOT"
+# Nz, Nx = 1024, 256
+
+# suffix = "kin_ky1_Rm1p5e5_PLOT_RSTRT1"
+# Nz, Nx = 2048, 512
+
+# suffix = "kin_ky1_Rm1p5e3_PLOT"
 suffix = "kin_ky0p18_Rm1p5e3_PLOT"
 Nz, Nx = 256, 64
 
@@ -77,19 +89,38 @@ z = dist.local_grid(zbasis)
 x = dist.local_grid(xbasis)
 X_e3, Y_e3 = np.meshgrid(x, z)
 
+scales = round(Nz_plt / Nz)
+print("scales = {}".format(scales))
+
 temp = dist.Field(name='temp', bases=[zbasis, xbasis])
 temp['g'] = by_t1_e3
-temp.change_scales(8)
+temp.change_scales(scales)
 by_t1_e3 = temp['g'].copy()
 temp.change_scales(1)
 
 temp['g'] = by_t2_e3
-temp.change_scales(8)
+temp.change_scales(scales)
 by_t2_e3 = temp['g'].copy()
 temp.change_scales(1)
 
-suffix = "kin_ky0p18_Rm1p5e5_PLOT"
+temp['g'] = vy_t1
+temp.change_scales(scales)
+vy_t1 = temp['g'].copy()
+temp.change_scales(1)
+
+temp['g'] = vy_t2
+temp.change_scales(scales)
+vy_t2 = temp['g'].copy()
+temp.change_scales(1)
+
+# suffix = "kin_ky0p18_Rm1p5e3_PLOT"
+# Nz, Nx = 256, 64
+
+# suffix = "kin_ky0p18_Rm1p5e5_PLOT"
 Nz, Nx = 1024, 256
+
+suffix = "kin_ky0p18_Rm1p5e5_PLOT_RSTRT1"
+Nz, Nx = 2048, 512
 
 with h5py.File("{}/{}/checkpoint/checkpoint_s{}.h5".format(path, suffix, N1), "r") as f:
     uvec = f['tasks']['u'][0, :, 0, ...]
@@ -103,7 +134,7 @@ with h5py.File("{}/{}/checkpoint/checkpoint_s{}.h5".format(path, suffix, N1), "r
     bvec_z = bvec[1, ...]
     bvec_x = bvec[2, ...]
 
-    vy_t1 = uvec_y
+    # vy_t1 = uvec_y
     vz_t1 = uvec_z
     vx_t1 = uvec_x
 
@@ -123,7 +154,7 @@ with h5py.File("{}/{}/checkpoint/checkpoint_s{}.h5".format(path, suffix, N2), "r
     bvec_z = bvec[1, ...]
     bvec_x = bvec[2, ...]
 
-    vy_t2 = uvec_y
+    # vy_t2 = uvec_y
     vz_t2 = uvec_z
     vx_t2 = uvec_x
 
@@ -131,16 +162,7 @@ with h5py.File("{}/{}/checkpoint/checkpoint_s{}.h5".format(path, suffix, N2), "r
     bz_t2 = bvec_z
     bx_t2 = bvec_x
 
-temp.change_scales(2)
-temp['g'] = by_t1_e5
-temp.change_scales(8)
-by_t1_e5 = temp['g'].copy()
-
-temp.change_scales(2)
-temp['g'] = by_t2_e5
-temp.change_scales(8)
-by_t2_e5 = temp['g'].copy()
-# temp.change_scales(1)
+# temp.change_scales(scales)
 
 Lx = 2
 Lz = 2*np.pi
@@ -151,41 +173,67 @@ zbasis = d3.RealFourier(coords['z'], size=Nz, bounds=(0, Lz), dealias=dealias)
 xbasis = d3.ChebyshevT(coords['x'], size=Nx, bounds=(-Lx / 2.0, Lx / 2.0), dealias=dealias)
 z = dist.local_grid(zbasis)
 x = dist.local_grid(xbasis)
+X_e3, Y_e3 = np.meshgrid(x, z)
+
+scales = round(Nz_plt / Nz)
+print("scales = {}".format(scales))
+temp = dist.Field(name='temp', bases=[zbasis, xbasis])
+temp['g'] = by_t1_e5
+temp.change_scales(scales)
+by_t1_e5 = temp['g'].copy()
+
+temp.change_scales(1)
+temp['g'] = by_t2_e5
+temp.change_scales(scales)
+by_t2_e5 = temp['g'].copy()
+# temp.change_scales(1)
+
+Lx = 2
+Lz = 2*np.pi
+coords = d3.CartesianCoordinates('z', 'x')
+dealias = 3/2
+dist = d3.Distributor(coords, dtype=np.float64)
+
+Nz, Nx = Nz_plt, Nx_plt
+zbasis = d3.RealFourier(coords['z'], size=Nz, bounds=(0, Lz), dealias=dealias)
+xbasis = d3.ChebyshevT(coords['x'], size=Nx, bounds=(-Lx / 2.0, Lx / 2.0), dealias=dealias)
+z = dist.local_grid(zbasis)
+x = dist.local_grid(xbasis)
 X_e5, Y_e5 = np.meshgrid(x, z)
 
 
-ftle_source = 'data_thirtyone'
-# ftle_source = 'data30'
-loaded = np.load('/home/x-loconnor/mhd/d2/{}/lya_{}.npz'.format(ftle_source, str(N1).zfill(4)))
-N = np.shape(loaded['lya'])[0]
-dt = 1e-2
-times = np.array([i*dt for i in range(N)])
-reshaped = np.reshape(loaded['lya'], (N, 256, 64))
+# ftle_source = 'data_thirtyone'
+# # ftle_source = 'data30'
+# loaded = np.load('/home/x-loconnor/mhd/d2/{}/lya_{}.npz'.format(ftle_source, str(N1).zfill(4)))
+# N = np.shape(loaded['lya'])[0]
+# dt = 1e-2
+# times = np.array([i*dt for i in range(N)])
+# reshaped = np.reshape(loaded['lya'], (N, 256, 64))
 
-Np = 64
-zn = np.linspace( 0, 2*np.pi, 4*Np+1)[:-1]
-xn = np.linspace(-1,       1,   Np+1)[:-1]
-positionsx = np.array([[xn[j] for j in range(Np)] for i in range(4*Np)])
-positionsz = np.array([[zn[i] for j in range(Np)] for i in range(4*Np)])
+# Np = 64
+# zn = np.linspace( 0, 2*np.pi, 4*Np+1)[:-1]
+# xn = np.linspace(-1,       1,   Np+1)[:-1]
+# positionsx = np.array([[xn[j] for j in range(Np)] for i in range(4*Np)])
+# positionsz = np.array([[zn[i] for j in range(Np)] for i in range(4*Np)])
 
 
-ftle1 = np.zeros((256, 64))
-for row in range(256):
-    for col in range(64):
-        data_vec = reshaped[:, row, col]
-        x, y = times, data_vec
-        slope, intercept, r, p, std_err = stats.linregress(x, y)
-        ftle1[row, col] = slope
+# ftle1 = np.zeros((256, 64))
+# for row in range(256):
+#     for col in range(64):
+#         data_vec = reshaped[:, row, col]
+#         x, y = times, data_vec
+#         slope, intercept, r, p, std_err = stats.linregress(x, y)
+#         ftle1[row, col] = slope
 
-loaded = np.load('/home/x-loconnor/mhd/d2/{}/lya_{}.npz'.format(ftle_source, str(N2).zfill(4)))
-reshaped = np.reshape(loaded['lya'], (N, 256, 64))
-ftle2 = np.zeros((256, 64))
-for row in range(256):
-    for col in range(64):
-        data_vec = reshaped[:, row, col]
-        x, y = times, data_vec
-        slope, intercept, r, p, std_err = stats.linregress(x, y)
-        ftle2[row, col] = slope
+# loaded = np.load('/home/x-loconnor/mhd/d2/{}/lya_{}.npz'.format(ftle_source, str(N2).zfill(4)))
+# reshaped = np.reshape(loaded['lya'], (N, 256, 64))
+# ftle2 = np.zeros((256, 64))
+# for row in range(256):
+#     for col in range(64):
+#         data_vec = reshaped[:, row, col]
+#         x, y = times, data_vec
+#         slope, intercept, r, p, std_err = stats.linregress(x, y)
+#         ftle2[row, col] = slope
 
 by_t1_e3 = by_t1_e3 / np.max(by_t1_e3)
 by_t2_e3 = by_t2_e3 / np.max(by_t2_e3)
@@ -202,6 +250,9 @@ patterns = [
     by_t2_e3,
     by_t2_e5,
 ]
+
+for pattern in patterns:
+    print(np.shape(pattern))
 
 cmaps = ['RdBu_r', 'PiYG', 'PiYG', 'RdBu_r', 'PiYG', 'PiYG']
 
@@ -230,9 +281,17 @@ pcs = []
 # titles = [r"$\mathbf{u} \cdot \mathbf{\hat{y}}$", r"$\mathbf{b} \cdot \mathbf{\hat{y}}$" + "\n" + r"$\rm{Rm}=1.5\cdot 10^3$", r"$\mathbf{b} \cdot \mathbf{\hat{y}}$" + "\n" + r"$\rm{Rm}=1.5\cdot 10^5$", r"$\mathbf{u} \cdot \mathbf{\hat{y}}$", r"$\mathbf{b} \cdot \mathbf{\hat{y}}$" + "\n" + r"$\rm{Rm}=1.5\cdot 10^3$", r"$\mathbf{b} \cdot \mathbf{\hat{y}}$" + "\n" + r"$\rm{Rm}=1.5\cdot 10^5$"]
 titles = [r"$\mathbf{u} \cdot \mathbf{\hat{y}}$", r"$\mathbf{b} \cdot \mathbf{\hat{y}}$", r"$\mathbf{b} \cdot \mathbf{\hat{y}}$", r"$\mathbf{u} \cdot \mathbf{\hat{y}}$", r"$\mathbf{b} \cdot \mathbf{\hat{y}}$", r"$\mathbf{b} \cdot \mathbf{\hat{y}}$"]
 
+# print(np.shape(X_e5))
+# print(np.shape(Y_e5))
+# print(np.shape(patterns[0]))
+# sys.exit()
 
 # Create subplots
 annotations = ["A", "B", "C", "D", "E", "F"]
+roll_index = 600 + 450
+for i, pattern in enumerate(patterns):
+    patterns[i] = np.roll(pattern, shift=roll_index, axis=0)
+
 for i, pos in enumerate(plot_positions):
     ax = fig.add_subplot(gs[pos], adjustable='box', aspect=1)
     # if i == 1 or i == 4:
@@ -240,7 +299,7 @@ for i, pos in enumerate(plot_positions):
     # else:
     #     xplt, yplt = X_e5, Y_e5
     xplt, yplt = X_e5, Y_e5
-
+    print(i)
     pc = ax.pcolormesh(xplt, yplt, patterns[i], cmap=cmaps[i], rasterized=True)
     # ax.text(annotations[i], [1, 1])
     ax.text(0.45, 0.93, annotations[i], bbox=dict(facecolor='white', alpha=1.0), transform=ax.transAxes)
