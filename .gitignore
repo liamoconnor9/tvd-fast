@@ -1,16 +1,37 @@
-__pycache__
-*.h5
-**/*.h5
+# Track only top-level scripts/configs plus the code directories listed below.
+
+# every subdirectory (simulation runs, analysis output, ...) except code directories
+/*/
+!/ftle/
+!/python/
+!/particle_tracker/
+
+# figures and videos
 *.png
-*.mp4
-*logger.txt
 *.pdf
-*.o*
-*.o
-*Zone.Identifier
-*.pt
-*core.*
-# *.net
-*.tar.gz
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.eps
+*.mp4
+*.mov
+
+# simulation data
+*.h5
+*.npz
 *.npy
-*.txt
+*.pt
+*.tar.gz
+
+# job logs, binaries, backups, caches
+goldfish.*
+pilot.txt
+*logger.txt
+a.out
+*core.*
+*Zone.Identifier
+*.bak*
+__pycache__/
+*.pyc
+*.swp
